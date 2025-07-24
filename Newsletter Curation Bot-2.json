@@ -1,0 +1,314 @@
+{
+  "name": "Newsletter Curation Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -96,
+        -32
+      ],
+      "id": "693a75db-0ea3-4340-a117-19915706eba4",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://oauth.reddit.com/r/technology/top?limit=10&t=day",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "redditOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Suspicious_Box_7952"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        128,
+        -128
+      ],
+      "id": "9780645d-a9c4-40d8-be6b-723fb5b1028d",
+      "name": "HTTP Request",
+      "credentials": {
+        "redditOAuth2Api": {
+          "id": "1eFnKn9bFvC1j9E7",
+          "name": "Reddit account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.nytimes.com/svc/topstories/v2/home.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "api-key",
+              "value": "jk55XyyAZceYwUGeIKZk86fgSATG9Ymj"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        128,
+        64
+      ],
+      "id": "b9bb9dc9-ac6c-4c1b-a9dc-bc5548a41d5b",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        352,
+        -32
+      ],
+      "id": "b13ad6fe-0c4e-43da-a3f1-361a92fdad81",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// pull in the two response bodies\nconst redditBody = items[0].json;\nconst nytBody    = items[1].json;\n\n// build an array of formatted Reddit posts\nconst redditPosts = redditBody.data.children.map(child => {\n  const d = child.data;\n  return {\n    json: {\n      source:     'reddit',\n      title:      d.title,\n      url:        d.url,\n      reddit_url: `https://reddit.com${d.permalink}`,\n      upvotes:    d.ups,\n      created_utc:d.created_utc,\n    }\n  };\n});\n\n// build an array of formatted NYT stories\nconst nytStories = nytBody.results.map(story => ({\n  json: {\n    source: 'nytimes',\n    title:  story.title,\n    url:    story.url,\n    section:story.section,\n    published_date: story.published_date,\n  }\n}));\n\n// return one combined list\nreturn [\n  ...redditPosts,\n  ...nytStories,\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        -32
+      ],
+      "id": "42d202ca-4cd2-43b1-9111-683724a25107",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Summarize this article briefly and include 1-2 key insights:\n\"{{ $json.title }}\"\nContent/URL:{{ $json.url }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        800,
+        -32
+      ],
+      "id": "1df54b2a-2c27-4e80-a347-0af440a176d4",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        896,
+        192
+      ],
+      "id": "0c17162a-d24b-4615-a6ce-d33a82e33e47",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "lTf4CVQ5s3mEcfCx",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6c95698b-96c8-4d2e-8d5b-674bbf77e8b1",
+              "name": "story_id",
+              "value": "={{$json}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        -32
+      ],
+      "id": "84e7bfd0-fbe4-4d4e-96ed-d5afb0c5e06a",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const articles = items;\nlet htmlContent = `\n  <style>\n    body { font-family: Arial, sans-serif; color: #333; }\n    h2 { font-size: 24px; color: #2c3e50; }\n    h3 { font-size: 20px; margin-top: 24px; color: #34495e; }\n    p { font-size: 16px; line-height: 1.6; }\n    ol { padding-left: 20px; }\n    hr { border: none; border-top: 1px solid #ccc; margin: 24px 0; }\n    a { color: #1e90ff; text-decoration: none; }\n    a:hover { text-decoration: underline; }\n    .footer { font-size: 13px; color: #888; margin-top: 30px; }\n  </style>\n\n  <h2>🗞️ Daily AI-Curated News Digest</h2>\n  <p>Hi there,</p>\n`;\n\nfor (let i = 0; i < articles.length; i++) {\n  const article = articles[i].json;\n\n  const title = `Story ${i + 1}`;\n  const outputRaw = article.output || '';\n  const url = article.url || article.reddit_url || null;\n\n  let formattedOutput = outputRaw\n    .replace(/\\n/g, \"<br>\")\n    .replace(/(\\*\\*Key Insights:\\*\\*|Key Insights:)/g, \"<strong>Key Insights:</strong>\");\n\n  htmlContent += `\n    <h3>${title}</h3>\n    <p>${formattedOutput}</p>\n    ${url ? `<p><a href=\"${url}\" target=\"_blank\">🔗 Read full article</a></p>` : \"\"}\n    <hr>\n  `;\n}\n\nhtmlContent += `\n  <p class=\"footer\">This newsletter was automatically generated by your n8n workflow.</p>\n`;\n\nreturn [{ json: { emailBody: htmlContent } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        -32
+      ],
+      "id": "ed5ee6e7-1f34-4c37-be9e-979639817b5e",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "sendTo": "programminglanguages07@gmail.com",
+        "subject": "📰 Your Curated News Brief ",
+        "message": "={{ $json.emailBody }}\n\n<p>Best regards,<br>Your Newsletter Automation Bot</p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1648,
+        -32
+      ],
+      "id": "485a21e1-c939-4989-8987-53fe618d956b",
+      "name": "Send a message",
+      "webhookId": "d0b091be-4a63-4e78-9aaf-118950eecada",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "4ihEk90yQsyFVn9n",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "216c8480-2748-4956-9573-43b0ce7c44e2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "96a4f4beffb9432f6f91fb6becfdf95892f0838e71a959bba6fd497f9b9d4b56"
+  },
+  "id": "oiLLAS1x8JtjvEyT",
+  "tags": []
+}
