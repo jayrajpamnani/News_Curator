@@ -30,7 +30,7 @@
           "parameters": [
             {
               "name": "User-Agent",
-              "value": "Suspicious_Box_7952"
+              "value": "YOUR_REDDIT_USERNAME"
             }
           ]
         },
@@ -59,7 +59,7 @@
           "parameters": [
             {
               "name": "api-key",
-              "value": "jk55XyyAZceYwUGeIKZk86fgSATG9Ymj"
+              "value": "API_KEY"
             }
           ]
         },
@@ -171,7 +171,7 @@
     },
     {
       "parameters": {
-        "sendTo": "programminglanguages07@gmail.com",
+        "sendTo": "EMAIL_WHERE_YOU_WANT_YOUR_CURATED_NEWS",
         "subject": "📰 Your Curated News Brief ",
         "message": "={{ $json.emailBody }}\n\n<p>Best regards,<br>Your Newsletter Automation Bot</p>",
         "options": {}
