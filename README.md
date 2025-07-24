@@ -3,5 +3,5 @@ An automated news curator workflow, made using N8n, which gathers news from diff
 
 Here is it's workflow diagram on N8n:
 
-
+![workflow_diagram.png](https://github.com/jayrajpamnani/News_Curator/blob/0680c5f1f17de017977ceefa368cc5833cc6cd83/workflow_diagram.png)
 
